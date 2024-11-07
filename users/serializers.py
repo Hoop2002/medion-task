@@ -121,11 +121,11 @@ class UserEmployeeSerializer(serializers.ModelSerializer):
         model = User
         fields = UserEmployeeListSerializer.Meta.fields + ("username", "date_joined")
 
+
 class UserEmployeeUpdateSerializer(serializers.ModelSerializer):
     image = Base64ImageField(required=False, max_length=None, use_url=True)
     username = serializers.CharField(required=False)
     employee_position = serializers.IntegerField(required=False)
-
 
     class Meta:
         model = User
@@ -138,6 +138,7 @@ class UserEmployeeUpdateSerializer(serializers.ModelSerializer):
             "dismissed",
             "dismissed_date",
         )
+
 
 class UserSerializer(serializers.ModelSerializer):
     image = Base64ImageField(required=False, max_length=None, use_url=True)
