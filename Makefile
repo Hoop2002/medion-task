@@ -1,14 +1,14 @@
 run-compose-dev:
-	docker compose --env-file development.env up
+	docker-compose --env-file development.env up
 
 stop-compose-dev:
-	docker compose --env-file development.env down
+	docker-compose --env-file development.env down
 
 rebuild-compose-dev:
-	docker compose --env-file development.env up --build
+	docker-compose --env-file development.env up --build
 
 drop-compose-dev:
-	docker compose --env-file development.env rm
+	docker-compose --env-file development.env rm
 
 import-env:
 	export $(grep -v '^#' development.env | xargs)

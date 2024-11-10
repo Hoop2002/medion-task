@@ -1,0 +1,29 @@
+version: '3.9'
+services:
+  web:
+    build: .
+    restart: always
+    command: bash -c "poetry run python3 manage.py migrate && poetry run gunicorn medion_technical_task.wsgi:application -c gunicorn_config.py"
+    depends_on:
+      db:
+        condition: service_started
+    ports:
+      - "${API_PORT_EXTERNAL}:${API_PORT_CONTAINER}"    
+    env_file:
+      - development.env
+    volumes:
+      - static_volume:/home/app/web/staticfiles
+      - media_volume:/home/app/web/mediafiles
+  db:
+    image: postgres:${POSTGRES_VERSION}
+    restart: always
+    ports:
+      - "${POSTGRES_PORT_EXTERNAL}:${POSTGRES_PORT_CONTAINER}"
+    env_file:
+      - development.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+volumes:
+  static_volume:   
+  media_volume:
+  postgres_data:
