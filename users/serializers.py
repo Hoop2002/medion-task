@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate, login
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.db.models import Q
@@ -11,7 +12,7 @@ from utils.fields import Base64ImageField
 
 class UserCreateSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
-    username = serializers.CharField()
+    email = serializers.CharField()
     full_name = serializers.CharField()
     password1 = serializers.CharField(write_only=True)
     password2 = serializers.CharField(write_only=True)
@@ -22,47 +23,47 @@ class UserCreateSerializer(serializers.ModelSerializer):
         refresh = RefreshToken.for_user(instance)
         return {"access": str(refresh.access_token), "refresh": str(refresh)}
 
+    def _is_valid_email(self, email):
+        try:
+            validate_email(email)
+            return True
+        except ValidationError:
+            return False
+
+    def _user_exists(self, email):
+        return User.objects.filter(email=email).exists()
+
     def validate(self, attrs):
         super().validate(attrs)
+
         password1 = attrs.get("password1")
         password2 = attrs.get("password2")
-        try:
-            validate_email(attrs["username"])
-            attrs["email"] = attrs["username"]
-            email = attrs["username"]
-        except ValidationError:
-            email = ""
+        email = attrs.get("email")
+        if not self._is_valid_email(email):
+            raise serializers.ValidationError(
+                {"email": "Некорректный адрес электронной почты."}
+            )
+
         if password1 != password2:
             raise serializers.ValidationError({"password": "Пароли не совпадают"})
-        _auth_user = None
-        if self.context["request"]:
-            _auth_user = self.context["request"].user
 
-        if email:
-            _user = (
-                User.objects.filter(Q(username=attrs["username"]) | Q(email=email))
-                .exclude(id=_auth_user.id if _auth_user else None)
-                .exists()
-            )
-        else:
-            _user = (
-                User.objects.filter(username=attrs["username"])
-                .exclude(id=_auth_user.id if _auth_user else None)
-                .exists()
-            )
-
-        if _user:
+        if len(password1) < 8:
             raise serializers.ValidationError(
-                {
-                    "username": "Пользователь с таким логином или почтой уже зарегистрирован"
-                }
+                {"password": "Пароль должен содержать минимум 8 символов."}
             )
+
+        if self._user_exists(email):
+            raise serializers.ValidationError(
+                {"email": "Пользователь с таким логином уже зарегистрирован"}
+            )
+
         return attrs
 
     def create(self, validated_data):
         validated_data.pop("password1")
         password = validated_data.pop("password2")
         validated_data["password"] = password
+        validated_data["username"] = validated_data["email"]
         user = User.objects.create(**validated_data)
         user.set_password(password)
         user.save()
@@ -72,18 +73,38 @@ class UserCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "username", "full_name", "password1", "password2", "auth")
+        fields = ("id", "email", "full_name", "password1", "password2", "auth")
 
 
 class SignInSerializer(serializers.Serializer):
-    username = serializers.CharField()
+    email = serializers.CharField()
     password = serializers.CharField()
+
+    def validate(self, attrs):
+        user = authenticate(email=attrs["email"], password=attrs["password"])
+        if not user:
+            message = (
+                "Пожалуйста, введите корректные имя пользователя и"
+                " пароль учётной записи. Оба поля могут быть чувствительны"
+                " к регистру."
+            )
+            raise serializers.ValidationError({"message": message})
+        attrs["user"] = user
+        return attrs
+
+
+class AccessTokenResponseSerializer(serializers.Serializer):
+    access = serializers.CharField()
+    refresh = serializers.CharField()
 
 
 class EmployeePositionListSerializer(serializers.ModelSerializer):
     class Meta:
         model = EmployeePosition
-        fields = ("name",)
+        fields = (
+            "id",
+            "name",
+        )
 
 
 class EmployeePositionSerializer(serializers.ModelSerializer):
@@ -98,16 +119,13 @@ class EmployeePositionSerializer(serializers.ModelSerializer):
 
 class UserEmployeeListSerializer(serializers.ModelSerializer):
     employee_position = EmployeePositionListSerializer()
-    image = serializers.ImageField()
 
     class Meta:
         model = User
         fields = (
-            "username",
             "full_name",
-            "employee_position",
             "email",
-            "image",
+            "employee_position",
             "dismissed",
             "dismissed_date",
         )
@@ -115,41 +133,38 @@ class UserEmployeeListSerializer(serializers.ModelSerializer):
 
 class UserEmployeeSerializer(serializers.ModelSerializer):
     employee_position = EmployeePositionListSerializer()
-    image = serializers.ImageField()
 
     class Meta:
         model = User
-        fields = UserEmployeeListSerializer.Meta.fields + ("username", "date_joined")
+        fields = UserEmployeeListSerializer.Meta.fields + ("user_id", "date_joined")
 
 
 class UserEmployeeUpdateSerializer(serializers.ModelSerializer):
-    image = Base64ImageField(required=False, max_length=None, use_url=True)
-    username = serializers.CharField(required=False)
+    email = serializers.CharField(required=False)
     employee_position = serializers.IntegerField(required=False)
 
     class Meta:
         model = User
         fields = (
-            "username",
             "full_name",
             "employee_position",
             "email",
-            "image",
             "dismissed",
             "dismissed_date",
         )
 
 
 class UserSerializer(serializers.ModelSerializer):
-    image = Base64ImageField(required=False, max_length=None, use_url=True)
-    username = serializers.CharField(required=False)
-    employee_position = EmployeePositionListSerializer()
+    email = serializers.CharField(required=False)
+    employee_position = EmployeePositionListSerializer(required=False, read_only=True)
+    password1 = serializers.CharField(required=False)
+    password2 = serializers.CharField(required=False)
 
     def update(self, instance, validated_data):
         data = self.context["request"].data
         if "password1" in data and "password2" in data:
-            password1 = data.pop("password1")
-            password2 = data.pop("password2")
+            password1 = data["password1"]
+            password2 = data["password2"]
 
             if password1 != password2:
                 raise serializers.ValidationError({"message": "Пароли не совпадают"})
@@ -160,9 +175,9 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            "username",
             "full_name",
             "employee_position",
             "email",
-            "image",
+            "password1",
+            "password2",
         )

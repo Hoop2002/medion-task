@@ -10,13 +10,18 @@ from users.serializers import (
     UserEmployeeSerializer,
     UserEmployeeUpdateSerializer,
 )
+from django_filters.rest_framework import DjangoFilterBackend
+from users.permissions import ChangeUser, DeleteUser, IsNotAuthenticated
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.filters import SearchFilter
 from rest_framework import status
 from users.models import User
+
+from users.filters import EmployeeFilter
 
 
 @extend_schema(tags=["auth-v1"])
@@ -28,6 +33,11 @@ class RefreshViewSet(TokenRefreshView):
 class AuthViewSet(GenericViewSet):
     queryset = User.objects
     permission_classes = [AllowAny]
+
+    def get_permissions(self):
+        if self.action == "sign_up":
+            return [IsNotAuthenticated()]
+        return super().get_permissions()
 
     def get_serializer_class(self):
         if self.action == "sign_up":
@@ -47,26 +57,19 @@ class AuthViewSet(GenericViewSet):
             )
 
     def sign_in(self, request, *args, **kwargs):
-        username = self.request.data.get("username")
-        password = self.request.data.get("password")
-        user = authenticate(username=username, password=password)
-        if user is None:
-            message = (
-                "Пожалуйста, введите корректные имя пользователя и"
-                " пароль учётной записи. Оба поля могут быть чувствительны"
-                " к регистру."
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.validated_data["user"]
+            login(request, user)
+            refresh_token = RefreshToken.for_user(user)
+            response = Response(
+                data={
+                    "access": str(refresh_token.access_token),
+                    "refresh": str(refresh_token),
+                }
             )
-            return Response(message, status=status.HTTP_400_BAD_REQUEST)
-
-        login(request, user)
-        refresh_token = RefreshToken.for_user(user)
-        response = Response(
-            data={
-                "access": str(refresh_token.access_token),
-                "refresh": str(refresh_token),
-            }
-        )
-        return response
+            return response
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 @extend_schema(tags=["user-v1"])
@@ -80,8 +83,7 @@ class UserViewSet(ModelViewSet):
         return Response(serializer.data)
 
     def update(self, request, *args, **kwargs):
-        instance = self.queryset.get(id=request.user.id)
-        serializer = self.get_serializer(instance, data=request.data)
+        serializer = self.get_serializer(request.user, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         data = serializer.data
@@ -93,6 +95,19 @@ class EmployeeViewSet(ModelViewSet):
     queryset = User.objects
     serializer_class = UserEmployeeSerializer
     permission_classes = [IsAuthenticated]
+    filter_backends = (DjangoFilterBackend, SearchFilter)
+    filterset_class = EmployeeFilter
+    search_fields = ("full_name", "email")
+
+    def get_queryset(self):
+        return User.objects.exclude(pk=self.request.user.pk)
+
+    def get_permissions(self):
+        if self.action == "update":
+            return [ChangeUser()]
+        elif self.action == "destroy":
+            return [DeleteUser()]
+        return super().get_permissions()
 
     def get_serializer_class(self):
         if self.action == "list":
@@ -100,3 +115,8 @@ class EmployeeViewSet(ModelViewSet):
         if self.action == "update":
             return UserEmployeeUpdateSerializer
         return UserEmployeeSerializer
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
