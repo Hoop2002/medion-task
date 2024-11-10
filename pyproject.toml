@@ -22,6 +22,7 @@ dj-database-url = "2.3.0"
 six = "1.16.0"
 langid = "^1.1.6"
 pillow = "10.4.0"
+whitenoise = "6.8.2"
 
 
 [build-system]
