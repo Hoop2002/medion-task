@@ -1,11 +1,11 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from utils.functions import generate_upload_name
+from django.contrib.auth.models import UserManager as BaseUserManager
 import uuid
 
 
 class EmployeePosition(models.Model):
-    name = models.CharField(verbose_name="Название", max_length=256)
+    name = models.CharField(verbose_name="Название", max_length=100)
     employee_position_id = models.UUIDField(
         default=uuid.uuid4, editable=False, unique=True
     )
@@ -20,27 +20,51 @@ class EmployeePosition(models.Model):
         verbose_name_plural = "Должности"
 
 
+class UserManager(BaseUserManager):
+    def create_user(self, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError("The Email field must be set")
+        email = self.normalize_email(email)
+        user = self.model(email=email, username=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser must have is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser must have is_superuser=True.")
+
+        return self.create_user(email, password, **extra_fields)
+
+
 class User(AbstractUser):
-    full_name = models.CharField(verbose_name="ФИО", max_length=256, null=False)
+
+    email = models.EmailField(verbose_name="Почта", blank=False, unique=True)
+
+    REQUIRED_FIELDS = []
+    USERNAME_FIELD = "email"
+
+    full_name = models.CharField(verbose_name="ФИО", max_length=255, null=False)
     user_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    image = models.ImageField(
-        upload_to=generate_upload_name,
-        verbose_name="Фото пользователя",
-        null=True,
-        blank=False,
-    )
     employee_position = models.ForeignKey(
         verbose_name="Должность",
         to=EmployeePosition,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         related_name="users",
         null=True,
         blank=False,
     )
-    dismissed = models.BooleanField(verbose_name="Уволен", default=False, blank=False)
+    dismissed = models.BooleanField(verbose_name="Уволен", default=False, blank=True)
     dismissed_date = models.DateField(
-        verbose_name="Дата увольнения", null=True, blank=False
+        verbose_name="Дата увольнения", null=True, blank=True
     )
+
+    objects = UserManager()
 
     class Meta:
         verbose_name = "Пользователь"

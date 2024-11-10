@@ -120,7 +120,7 @@ else:
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.filebased.FileBasedCache",
-        "LOCATION": "/var/tmp/polezno_access_backend_cache",
+        "LOCATION": "/var/tmp/backend_cache",
         "TIMEOUT": 120,
         "OPTIONS": {"MAX_ENTRIES": 1000},
     }
