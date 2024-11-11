@@ -19,7 +19,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter
 from rest_framework import status
-from users.models import User
+from users.models import User, EmployeePosition
 
 from users.filters import EmployeeFilter
 
@@ -120,3 +120,16 @@ class EmployeeViewSet(ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+
+
+class EmployeePositionViewSet(ModelViewSet):
+    queryset = EmployeePosition.objects
+    serializer_class = EmployeePositionSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == "list":
+            return EmployeePositionListSerializer
+        if self.action == "retrieve":
+            return EmployeePositionSerializer
+        return EmployeePositionSerializer

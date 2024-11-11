@@ -123,6 +123,7 @@ class UserEmployeeListSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
+            "id",
             "full_name",
             "email",
             "employee_position",
