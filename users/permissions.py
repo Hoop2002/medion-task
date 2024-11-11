@@ -11,11 +11,15 @@ class ChangeUser(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.user.is_superuser:
             return True
-        return request.user.is_authenticated and request.has_perm("change_user")
+        return request.user.is_authenticated and request.user.has_perm(
+            "users.change_user"
+        )
 
 
 class DeleteUser(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.user.is_superuser:
             return True
-        return request.user.is_authenticated and request.has_perm("delete_user")
+        return request.user.is_authenticated and request.user.has_perm(
+            "users.delete_user"
+        )
