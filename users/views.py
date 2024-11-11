@@ -1,5 +1,5 @@
 from drf_spectacular.utils import extend_schema
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import login
 from users.serializers import (
     UserCreateSerializer,
     SignInSerializer,
@@ -20,7 +20,6 @@ from rest_framework.response import Response
 from rest_framework.filters import SearchFilter
 from rest_framework import status
 from users.models import User, EmployeePosition
-
 from users.filters import EmployeeFilter
 
 

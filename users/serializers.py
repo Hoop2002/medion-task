@@ -1,13 +1,9 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import authenticate
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
-from django.db.models import Q
-from django.shortcuts import get_object_or_404
 from users.models import User, EmployeePosition
-
-from utils.fields import Base64ImageField
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -142,7 +138,9 @@ class UserEmployeeSerializer(serializers.ModelSerializer):
 
 class UserEmployeeUpdateSerializer(serializers.ModelSerializer):
     email = serializers.CharField(required=False)
-    employee_position = serializers.PrimaryKeyRelatedField(queryset=EmployeePosition.objects.all(), required=False, allow_null=True)
+    employee_position = serializers.PrimaryKeyRelatedField(
+        queryset=EmployeePosition.objects.all(), required=False, allow_null=True
+    )
 
     class Meta:
         model = User
