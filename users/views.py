@@ -123,7 +123,7 @@ class EmployeeViewSet(ModelViewSet):
 
 @extend_schema(tags=["employee-v1"])
 class EmployeePositionViewSet(ModelViewSet):
-    queryset = EmployeePosition.objects
+    queryset = EmployeePosition.objects.all()
     serializer_class = EmployeePositionSerializer
     permission_classes = [IsAuthenticated]
 
