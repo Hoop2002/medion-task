@@ -62,6 +62,11 @@ class User(AbstractUser):
 
     objects = UserManager()
 
+    def save(self, *args, **kwargs):
+        if not self.username:
+            self.username = self.email
+        super(User, self).save(*args, **kwargs)
+
     class Meta:
         verbose_name = "Пользователь"
         verbose_name_plural = "Пользователи"
