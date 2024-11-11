@@ -21,7 +21,7 @@ class UserManager(BaseUserManager):
         if not email:
             raise ValueError("The Email field must be set")
         email = self.normalize_email(email)
-        user = self.model(email=email, username=email, **extra_fields)
+        user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -60,11 +60,6 @@ class User(AbstractUser):
     )
 
     objects = UserManager()
-
-    def save(self, *args, **kwargs):
-        if not self.username:
-            self.username = self.email
-        super(User, self).save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Пользователь"
