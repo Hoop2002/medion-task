@@ -137,7 +137,7 @@ class UserEmployeeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = UserEmployeeListSerializer.Meta.fields + ("user_id", "date_joined")
+        fields = UserEmployeeListSerializer.Meta.fields + ("date_joined",)
 
 
 class UserEmployeeUpdateSerializer(serializers.ModelSerializer):
@@ -156,6 +156,7 @@ class UserEmployeeUpdateSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    full_name = serializers.CharField(required=False)
     email = serializers.CharField(required=False)
     employee_position = EmployeePositionListSerializer(required=False, read_only=True)
     password1 = serializers.CharField(required=False)
@@ -169,6 +170,11 @@ class UserSerializer(serializers.ModelSerializer):
 
             if password1 != password2:
                 raise serializers.ValidationError({"message": "Пароли не совпадают"})
+            if len(password1) < 8:
+                raise serializers.ValidationError(
+                    {"password": "Пароль должен содержать минимум 8 символов."}
+                )
+
             instance.set_password(password1)
         instance.save()
         return instance
