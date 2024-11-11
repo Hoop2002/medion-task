@@ -6,7 +6,7 @@ class IsNotAuthenticated(permissions.BasePermission):
         return not request.user.is_authenticated
 
 
-class ChangeUser(permissions.BasePermission):
+class ChangeUserPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.user.is_superuser:
             return True
@@ -15,7 +15,7 @@ class ChangeUser(permissions.BasePermission):
         )
 
 
-class DeleteUser(permissions.BasePermission):
+class DeleteUserPermission(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.user.is_superuser:
             return True

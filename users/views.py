@@ -11,7 +11,11 @@ from users.serializers import (
     UserEmployeeUpdateSerializer,
 )
 from django_filters.rest_framework import DjangoFilterBackend
-from users.permissions import ChangeUser, DeleteUser, IsNotAuthenticated
+from users.permissions import (
+    ChangeUserPermission,
+    DeleteUserPermission,
+    IsNotAuthenticated,
+)
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.viewsets import GenericViewSet, ModelViewSet
@@ -45,30 +49,25 @@ class AuthViewSet(GenericViewSet):
 
     def sign_up(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            serializer = self.get_serializer(user)
-            response = Response(serializer.data, status=status.HTTP_201_CREATED)
-            return response
-        else:
-            return Response(
-                serializer.errors, status=status.HTTP_422_UNPROCESSABLE_ENTITY
-            )
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        serializer = self.get_serializer(user)
+        response = Response(serializer.data, status=status.HTTP_201_CREATED)
+        return response
 
     def sign_in(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.validated_data["user"]
-            login(request, user)
-            refresh_token = RefreshToken.for_user(user)
-            response = Response(
-                data={
-                    "access": str(refresh_token.access_token),
-                    "refresh": str(refresh_token),
-                }
-            )
-            return response
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data["user"]
+        login(request, user)
+        refresh_token = RefreshToken.for_user(user)
+        response = Response(
+            data={
+                "access": str(refresh_token.access_token),
+                "refresh": str(refresh_token),
+            }
+        )
+        return response
 
 
 @extend_schema(tags=["user-v1"])
@@ -90,7 +89,6 @@ class UserViewSet(ModelViewSet):
 
 @extend_schema(tags=["employee-v1"])
 class EmployeeViewSet(ModelViewSet):
-    queryset = User.objects
     serializer_class = UserEmployeeSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = (DjangoFilterBackend, SearchFilter)
@@ -102,9 +100,9 @@ class EmployeeViewSet(ModelViewSet):
 
     def get_permissions(self):
         if self.action == "update":
-            return [ChangeUser()]
+            return [ChangeUserPermission()]
         elif self.action == "destroy":
-            return [DeleteUser()]
+            return [DeleteUserPermission()]
         return super().get_permissions()
 
     def get_serializer_class(self):
@@ -113,11 +111,6 @@ class EmployeeViewSet(ModelViewSet):
         if self.action == "update":
             return UserEmployeeUpdateSerializer
         return UserEmployeeSerializer
-
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
 
 
 @extend_schema(tags=["employee-v1"])
