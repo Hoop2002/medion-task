@@ -120,7 +120,7 @@ class EmployeeViewSet(ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
-
+@extend_schema(tags=["employee-v1"])
 class EmployeePositionViewSet(ModelViewSet):
     queryset = EmployeePosition.objects
     serializer_class = EmployeePositionSerializer
