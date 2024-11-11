@@ -137,7 +137,7 @@ class UserEmployeeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = UserEmployeeListSerializer.Meta.fields + ("user_id", "date_joined")
+        fields = UserEmployeeListSerializer.Meta.fields + ("date_joined",)
 
 
 class UserEmployeeUpdateSerializer(serializers.ModelSerializer):

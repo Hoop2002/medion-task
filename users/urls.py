@@ -28,7 +28,7 @@ urlpatterns = [
                     "user/", views.UserViewSet.as_view({"get": "retrieve"}), name="user"
                 ),
                 path(
-                    "user/",
+                    "user/update/",
                     views.UserViewSet.as_view({"put": "update"}),
                     name="user_update",
                 ),
@@ -43,7 +43,7 @@ urlpatterns = [
                     name="employee_list",
                 ),
                 path(
-                    "employee/<int:pk>/",
+                    "employee/update/<int:pk>/",
                     views.EmployeeViewSet.as_view({"put": "update"}),
                     name="employee_update",
                 ),

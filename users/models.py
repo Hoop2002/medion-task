@@ -6,9 +6,6 @@ import uuid
 
 class EmployeePosition(models.Model):
     name = models.CharField(verbose_name="Название", max_length=100)
-    employee_position_id = models.UUIDField(
-        default=uuid.uuid4, editable=False, unique=True
-    )
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -21,7 +18,7 @@ class EmployeePosition(models.Model):
 
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, password=None, **extra_fields):
+    def create_user(self, email, password, **extra_fields):
         if not email:
             raise ValueError("The Email field must be set")
         email = self.normalize_email(email)
@@ -50,7 +47,6 @@ class User(AbstractUser):
     USERNAME_FIELD = "email"
 
     full_name = models.CharField(verbose_name="ФИО", max_length=255, null=False)
-    user_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     employee_position = models.ForeignKey(
         verbose_name="Должность",
         to=EmployeePosition,

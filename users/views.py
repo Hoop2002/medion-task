@@ -86,8 +86,7 @@ class UserViewSet(ModelViewSet):
         serializer = self.get_serializer(request.user, data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        data = serializer.data
-        return Response(data, status=status.HTTP_202_ACCEPTED)
+        return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
 
 @extend_schema(tags=["employee-v1"])
