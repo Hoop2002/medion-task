@@ -47,6 +47,21 @@ urlpatterns = [
                     views.EmployeeViewSet.as_view({"put": "update"}),
                     name="employee_update",
                 ),
+                path(
+                    "employee/drop/<int:pk>/",
+                    views.EmployeeViewSet.as_view({"delete": "destroy"}),
+                    name="employee_destroy",
+                ),
+                path(
+                    "employee_position/",
+                    views.EmployeePositionViewSet.as_view({"get": "list"}),
+                    name="employee_position_list",
+                ),
+                path(
+                    "employee_position/<int:pk>/",
+                    views.EmployeePositionViewSet.as_view({"get": "retrieve"}),
+                    name="employee_position_retrieve",
+                ),
             ]
         ),
     )
