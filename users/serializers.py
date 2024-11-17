@@ -15,7 +15,7 @@ class UserCreateSerializer(serializers.ModelSerializer):
     auth = serializers.SerializerMethodField(read_only=True)
 
     @staticmethod
-    def get_auth(instance) -> str:
+    def get_auth(instance) -> dict:
         refresh = RefreshToken.for_user(instance)
         return {"access": str(refresh.access_token), "refresh": str(refresh)}
 
